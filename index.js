@@ -4,6 +4,12 @@ const express = require('express')
 const app = express()
 const port = 3000
 
+
+
+app.get('/', (req, res) => {
+  res.status(200).send('Hello, hackathon!').end();
+})
+
 app.get('/covid', (req, res) => {
   return getCovidStats(req, res);
 })
@@ -74,22 +80,19 @@ const getHotels = async (req, res) => {
 
 const getPlacesList = async (req, res) => {
   const bigqueryClient = new BigQuery();
-  const sqlQuery="SELECT * FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` LIMIT 1000";
+  const sqlQuery=`SELECT Area_name, Area_type, AVG(Daily_lab_confirmed_cases) as cases 
+  FROM \`lbghack2021team7.stage.stage_ukgov_covid19\` 
+  Group by Area_name, Area_type
+  HAVING Area_type = 'ltla'
+  order by cases
+  LIMIT 10`;
   const options = {
     query: sqlQuery,
   };
 
   // Run the query
-  // const [rows] = await bigqueryClient.query(options);
+  const [rows] = await bigqueryClient.query(options);
 
-  const rows = [
-        "Bristol",
-        "London",
-        "Truro",
-        "St Ives",
-        "Bournemouth"
-    ];
-    
   res.set('Access-Control-Allow-Origin', "*")
   res.set('Access-Control-Allow-Methods', 'GET')
   res.status(200).send(JSON.stringify(rows));
@@ -97,15 +100,17 @@ const getPlacesList = async (req, res) => {
 
 const getSentiment = async (req, res) => {
   const bigqueryClient = new BigQuery();
-  const sqlQuery="SELECT * FROM `bigquery-public-data.covid19_govt_response.oxford_policy_tracker` LIMIT 1000";
+  const place = req.query.place || 'bristol';
+  
+  const sqlQuery=`SELECT AVG(SentimentScore) FROM \`lbghack2021team7.stage.stage_sentiment\` 
+  where LOWER(Tweet) like '%${place}%'`;
+
   const options = {
     query: sqlQuery,
   };
 
   // Run the query
-  // const [rows] = await bigqueryClient.query(options);
-
-  const rows =  42;
+  const [rows] = await bigqueryClient.query(options);
       
   res.set('Access-Control-Allow-Origin', "*")
   res.set('Access-Control-Allow-Methods', 'GET')
